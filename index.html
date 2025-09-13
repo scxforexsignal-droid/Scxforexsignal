@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SCX Forex Signals — Single File (Updated)</title>
+
+<!-- Firebase (compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+
+<!-- PayPal SDK using your Client ID (live) -->
+<script src="https://www.paypal.com/sdk/js?client-id=AUcKE0iL2d9YmalH5UrGOm_BxCk3OAD2xZG2kUDbjxzwZvwME8hng5mwc0j9k4vaNamFKq1oPFKrRxju&currency=USD"></script>
+
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f7f7f7;color:#222}
+  .container{max-width:980px;margin:28px auto;padding:18px;background:#fff;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,0.08)}
+  h2{margin:6px 0 12px}
+  input,select,textarea,button{width:100%;padding:10px;margin:6px 0;border-radius:6px;border:1px solid #dcdcdc;box-sizing:border-box}
+  button{background:#1a73e8;color:#fff;border:none;cursor:pointer}
+  button.secondary{background:#e0e0e0;color:#111}
+  .flex{display:flex;gap:10px;align-items:center}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .signal-card{background:#fff;padding:12px;margin-bottom:12px;border-radius:8px;border:1px solid #eee}
+  .signal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:700}
+  .status-tag{padding:6px 10px;border-radius:999px;color:#fff;font-size:0.85em}
+  .badge-gray{background:#6c757d}
+  .badge-green{background:#28a745}
+  .badge-red{background:#dc3545}
+  .badge-yellow{background:orange}
+  .badge-purple{background:#6f42c1}
+  .admin-nav{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .admin-nav button{flex:1;min-width:120px}
+  .tabs{display:flex;gap:10px;margin-bottom:12px}
+  .tab{padding:8px;background:#eee;border-radius:6px;cursor:pointer}
+  .tab.active{background:#1a73e8;color:#fff}
+  .admin-buttons button{margin-right:6px;margin-top:6px}
+  small.note{color:#666}
+  .small-muted{font-size:0.9em;color:#666}
+  .back-btn{background:#555;color:#fff;padding:8px;border-radius:6px;display:inline-block;cursor:pointer;margin-top:10px}
+  .hidden{display:none}
+  /* Payment page minimal layout */
+  #payment-page .card{padding:16px;border-radius:8px;border:1px solid #eee;background:#fff}
+  .member-icons {font-size:1.2em}
+  .member-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f1f1}
+  .muted {color:#666;font-size:0.9em}
+  .small-btn {padding:6px 8px;border-radius:6px;border:none;cursor:pointer}
+  .btn-activate{background:#28a745;color:#fff}
+  .btn-deactivate{background:#dc3545;color:#fff}
+  .btn-paid{background:orange;color:#fff}
+
+  /* Reviews carousel */
+  .reviews-box {margin-top:16px;padding:12px;border-radius:8px;border:1px solid #eee;background:#fafafa;overflow:hidden;position:relative}
+  .review-inner {display:flex;gap:12px;align-items:center;transition:transform .6s ease}
+  .review-item {min-width:100%;display:flex;gap:12px;align-items:center;padding:8px 4px;box-sizing:border-box}
+  .avatar {width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#1a73e8;color:#fff;font-weight:700}
+  .review-text {flex:1}
+  .review-name {font-weight:700}
+  .review-stars {color:#f5a623}
+  .review-msg {color:#333}
+  /* WhatsApp icon */
+  .whatsapp-bottom {display:flex;justify-content:center;margin-top:12px}
+  .whatsapp-btn {width:44px;height:44px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#25D366;border:none;cursor:pointer}
+  .whatsapp-svg {width:20px;height:20px;display:block;fill:#fff}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- LOGIN -->
+  <div id="login-page">
+    <h2>Login</h2>
+    <input id="emailInput" type="email" placeholder="Email" />
+    <input id="passwordInput" type="password" placeholder="Password" />
+    <label style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="rememberMe"> Remember me for 30 days
+    </label>
+    <div style="display:flex;gap:10px">
+      <button onclick="login()">Login</button>
+      <button onclick="showSignup()" class="secondary">Sign up</button>
+    </div>
+    <p style="margin-top:8px"><a href="#" onclick="resetPassword()">Forgot password?</a></p>
+    <p id="loginError" style="color:red"></p>
+  </div>
+
+  <!-- SIGNUP -->
+  <div id="signup-page" style="display:none">
+    <h2>Sign Up</h2>
+    <input id="signupEmail" type="email" placeholder="Email" />
+    <input id="signupPassword" type="password" placeholder="Password" />
+    <div style="display:flex;gap:10px">
+      <button onclick="signup()">Create account</button>
+      <button onclick="showLogin()" class="secondary">Back to Login</button>
+    </div>
+    <p id="signupError" style="color:red"></p>
+  </div>
+
+  <!-- PAYMENT PAGE (for 🔴 and 🟡 users) -->
+  <div id="payment-page" style="display:none">
+    <h2>Subscription</h2>
+    <div class="card">
+      <!-- Two subscription options: monthly & lifetime -->
+      <div class="subscription-option" style="margin-bottom:12px">
+        <h3 style="margin:6px 0">Monthly — $25.00</h3>
+        <div id="paypal-button-monthly"></div>
+      </div>
+
+      <div class="subscription-option" style="margin-bottom:12px">
+        <h3 style="margin:6px 0">Lifetime — $450.00</h3>
+        <div id="paypal-button-lifetime"></div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <div></div>
+        <div>
+          <button onclick="logout()" class="secondary">Logout</button>
+        </div>
+      </div>
+
+      <!-- Reviews carousel (only for logged-in users) -->
+      <div id="reviewsContainer" class="reviews-box" style="display:none">
+        <div id="reviewInner" class="review-inner"></div>
+      </div>
+
+      <!-- WhatsApp at bottom of payment section (no phone shown) -->
+      <div class="whatsapp-bottom" id="whatsappBottom" style="display:none">
+        <button title="Contact support via WhatsApp" class="whatsapp-btn" onclick="openWhatsApp()">
+          <svg class="whatsapp-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M20.52 3.48A11.9 11.9 0 0012 .5 11.9 11.9 0 003.48 3.48 11.9 11.9 0 00.5 12c0 2.02.53 3.93 1.53 5.62L.24 22.5l4.94-1.3A11.9 11.9 0 0012 23.5c2.02 0 3.93-.53 5.62-1.53A11.9 11.9 0 0023.5 12a11.9 11.9 0 00-1-4.52zM12 21c-1.9 0-3.73-.5-5.35-1.44l-.38-.22-2.93.77.78-2.86-.24-.4A9 9 0 1112 21zm4.46-6.65c-.24-.12-1.44-.71-1.66-.79-.22-.08-.38-.12-.54.12s-.62.79-.76.95c-.14.16-.27.18-.5.06-.24-.12-1-0.37-1.9-1.17-.7-.6-1.17-1.34-1.31-1.58-.14-.24-.02-.37.11-.49.12-.12.26-.27.39-.41.13-.14.17-.24.26-.4.09-.16.04-.3-.02-.4-.06-.1-.54-1.28-.74-1.76-.19-.46-.39-.4-.54-.4-.14 0-.3-.02-.46-.02-.16 0-.42.06-.64.3-.22.24-.86.84-.86 2.04s.88 2.36 1 2.52c.12.16 1.76 2.7 4.26 3.78 2.5 1.08 2.5.72 2.95.68.45-.05 1.44-.58 1.64-1.14.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28z"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MEMBER DASHBOARD (only visible to 🟢 active members) -->
+  <div id="member-dashboard" style="display:none">
+    <h2>Member Dashboard</h2>
+    <div class="tabs">
+      <div class="tab active" id="member-tab-active" onclick="switchMemberTab('active')">Active Signals</div>
+      <div class="tab" id="member-tab-history" onclick="switchMemberTab('history')">History</div>
+    </div>
+
+    <div id="memberSignalsList"></div>
+
+    <div style="margin-top:12px" class="flex">
+      <button onclick="logout()" class="secondary">Logout</button>
+    </div>
+    <p class="small-muted" style="margin-top:8px">Note: Active signals shown in Active tab. History shows completed/TP/SL/expired signals.</p>
+  </div>
+
+  <!-- ADMIN DASHBOARD -->
+  <div id="admin-dashboard" style="display:none">
+    <h2>Admin Dashboard</h2>
+    <div class="admin-nav">
+      <button id="nav-post" class="active" onclick="switchAdminTab('post')">Post Signal</button>
+      <button id="nav-members" onclick="switchAdminTab('members')">Members</button>
+      <button id="nav-active" onclick="switchAdminTab('active')">Active Signals</button>
+      <button id="nav-history" onclick="switchAdminTab('history')">Signal History</button>
+      <button id="nav-subscriptions" onclick="switchAdminTab('subscriptions')">Subscriptions</button>
+      <button id="nav-signout" onclick="logout()" class="secondary">Sign out</button>
+    </div>
+
+    <!-- POST SIGNAL -->
+    <div id="admin-post" class="admin-section">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+        <h3 style="margin:0">Publish Signal</h3>
+      </div>
+      <div class="cols">
+        <input id="pair" placeholder="Pair (e.g., XAUUSD)">
+        <select id="direction"><option>Buy</option><option>Sell</option></select>
+        <input id="entry" placeholder="Entry price">
+        <input id="sl" placeholder="Stop loss">
+        <input id="tp1" placeholder="Take profit 1">
+        <input id="tp2" placeholder="Take profit 2">
+        <input id="tp3" placeholder="Take profit 3">
+      </div>
+      <!-- extended status options -->
+      <select id="status">
+        <option value="Pending">Pending</option>
+        <option value="Active">Active</option>
+        <option value="TP1">TP1</option>
+        <option value="TP2">TP2</option>
+        <option value="TP3">TP3</option>
+        <option value="SL">SL</option>
+        <option value="Expired">Expired</option>
+      </select>
+      <textarea id="reason" placeholder="Reason / Analysis"></textarea>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button onclick="postSignal()">Publish Signal</button>
+        <button onclick="clearPostForm()" class="secondary">Clear</button>
+      </div>
+
+      <h3 style="margin-top:16px">Existing Signals (Admin)</h3>
+      <div id="signalsListAdmin"></div>
+    </div>
+
+    <!-- MEMBERS -->
+    <div id="admin-members" class="admin-section" style="display:none">
+      <h3>Members</h3>
+      <div id="membersList">Loading members...</div>
+    </div>
+
+    <!-- ACTIVE SIGNALS -->
+    <div id="admin-active" class="admin-section" style="display:none">
+      <h3>Active Signals</h3>
+      <div id="activeSignals"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="admin-history" class="admin-section" style="display:none">
+      <h3>Signal History</h3>
+      <div id="completedSignals"></div>
+    </div>
+
+    <!-- SUBSCRIPTIONS -->
+    <div id="admin-subscriptions" class="admin-section" style="display:none">
+      <h3>Subscriptions</h3>
+      <div id="subscriptionsList">Loading subscriptions...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ===========================
+   CONFIG (your provided values)
+   =========================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAOtvOtwIuI75c3ys-D1xu09dfk5DhkQnQ",
+  authDomain: "scxforexsignal-3769b.firebaseapp.com",
+  projectId: "scxforexsignal-3769b",
+  storageBucket: "scxforexsignal-3769b.appspot.com",
+  messagingSenderId: "917213061105",
+  appId: "1:917213061105:android:bc95864449b7385dde6e50"
+};
+
+// FCM key included (not used in this file unless you enable messaging)
+const FCM_VAPID_KEY = "BFgr5idOtc2JrMLSbtkC-1nq6szMj00a6TUuttA1yv5Lt528Itajfo6fsMcOQ-1wuG7lLwH19QuBK0PnRnMWNSA";
+
+// Hardcoded admin credentials (development convenience)
+const ADMIN_EMAIL = "wekesaayub66@gmail.com";
+const ADMIN_PASSWORD = "@Bakary2003";
+
+// WhatsApp number (not displayed on screen)
+const SUPPORT_WHATSAPP = "+254718156857";
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentMemberTab = 'active';
+let adminCurrentTab = 'post';
+let currentUserMemberDoc = null; // will hold member doc data after login
+
+/* ===== dummy reviews (10) ===== */
+const reviews = [
+  {name:"David K", stars:5, msg:"SCX made my trading so much easier. Entries are clear and accurate!", avatarText:"DK"},
+  {name:"Aisha M", stars:5, msg:"High win-rate signals and simple explanations — recommend to everyone.", avatarText:"AM"},
+  {name:"John O", stars:5, msg:"Finally a signal app that actually helps my P/L. Great support.", avatarText:"JO"},
+  {name:"Mary W", stars:5, msg:"Entry points are excellent. My confidence in trading has increased.", avatarText:"MW"},
+  {name:"Peter N", stars:5, msg:"Very reliable signals and fast updates. I love the UI.", avatarText:"PN"},
+  {name:"Samuel R", stars:5, msg:"Consistent winners — the analysis is spot on. Thank you SCX!", avatarText:"SR"},
+  {name:"Grace L", stars:5, msg:"The app shortened my learning curve. Signals are precise.", avatarText:"GL"},
+  {name:"Tom B", stars:5, msg:"Support answered quickly and the signals delivered value immediately.", avatarText:"TB"},
+  {name:"Fiona A", stars:5, msg:"Great risk management suggestions and clear TP/SL levels.", avatarText:"FA"},
+  {name:"Victor S", stars:5, msg:"Best decision for my trading journey — simple and profitable.", avatarText:"VS"}
+];
+
+/* ===== UI helpers ===== */
+function showSignup(){ document.getElementById('login-page').style.display='none'; document.getElementById('signup-page').style.display='block'; }
+function showLogin(){ document.getElementById('signup-page').style.display='none'; document.getElementById('login-page').style.display='block'; }
+
+function clearPostForm(){
+  ['pair','entry','sl','tp1','tp2','tp3','reason'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('status').value='Pending';
+}
+
+/* ===== Authentication helpers ===== */
+function resetPassword(){
+  const email = document.getElementById('emailInput').value.trim();
+  if(!email) return alert("Enter your email in the login form first.");
+  auth.sendPasswordResetEmail(email).then(()=>alert("Password reset email sent!")).catch(e=>alert(e.message));
+}
+
+/* ===== Signup ===== */
+function signup(){
+  const email = document.getElementById('signupEmail').value.trim();
+  const pass = document.getElementById('signupPassword').value;
+  document.getElementById('signupError').innerText = '';
+  if(!email || !pass) return document.getElementById('signupError').innerText = 'Enter email & password';
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(async (res)=>{
+      const uid = res.user.uid;
+      await db.collection('members').doc(uid).set({
+        email,
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        active: false,
+        paid: false,
+        createdBy: 'self'
+      }, { merge: true });
+      alert('Account created! Please login.');
+      showLogin();
+    })
+    .catch(err=>document.getElementById('signupError').innerText = err.message);
+}
+
+/* ===== Login (with remember me) ===== */
+async function login(){
+  const email = document.getElementById('emailInput').value.trim();
+  const pass = document.getElementById('passwordInput').value;
+  const remember = document.getElementById('rememberMe').checked;
+  document.getElementById('loginError').innerText = '';
+
+  // Admin quick override (hardcoded)
+  if(email === ADMIN_EMAIL && pass === ADMIN_PASSWORD){
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('admin-dashboard').style.display='block';
+    ['nav-post','nav-members','nav-active','nav-history','nav-subscriptions'].forEach(id=>document.getElementById(id).classList.remove('hidden'));
+    switchAdminTab('post');
+    listenSignalsAdmin();
+    listenActiveSignals();
+    listenCompletedSignals();
+    listenMembersAdmin();
+    listenSubscriptions();
+    return;
+  }
+
+  try {
+    if(remember){
+      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    } else {
+      await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    }
+
+    await auth.signInWithEmailAndPassword(email, pass);
+    const uid = auth.currentUser.uid;
+
+    // load member doc
+    const memberSnap = await db.collection('members').doc(uid).get();
+    if(!memberSnap.exists){
+      await db.collection('members').doc(uid).set({
+        email,
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        active: false,
+        paid: false
+      }, { merge: true });
+      currentUserMemberDoc = { email, active:false, paid:false };
+    } else {
+      currentUserMemberDoc = memberSnap.data();
+    }
+
+    // show UI based on status
+    await decideMemberUI();
+
+  } catch (err){
+    document.getElementById('loginError').innerText = err.message;
+  }
+}
+
+/* ===== Logout ===== */
+function logout(){
+  auth.signOut().finally(()=>location.reload());
+}
+
+/* ===== Decide which UI to show for members =====
+   - 🔴 (paid:false) => only payment-page
+   - 🟡 (paid:true && active:false) => only payment-page (waiting admin)
+   - 🟢 (active:true) => member-dashboard with Active/History
+*/
+async function decideMemberUI(){
+  const uid = auth.currentUser.uid;
+  const memberSnap = await db.collection('members').doc(uid).get();
+  currentUserMemberDoc = memberSnap.exists ? memberSnap.data() : { paid:false, active:false };
+
+  // Hide all first
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('signup-page').style.display='none';
+  document.getElementById('admin-dashboard').style.display='none';
+  document.getElementById('member-dashboard').style.display='none';
+  document.getElementById('payment-page').style.display='none';
+
+  const paid = currentUserMemberDoc && currentUserMemberDoc.paid;
+  const active = currentUserMemberDoc && currentUserMemberDoc.active;
+
+  // If not active -> show minimal Payment Page only (both for unpaid and paid-but-waiting)
+  if(!active){
+    document.getElementById('payment-page').style.display='block';
+    renderMemberPaypal(); // ensure PayPal renders (both buttons)
+    showReviews(); // reviews visible at bottom of payment page
+    return;
+  }
+
+  // active member => show dashboard with 2 tabs
+  document.getElementById('member-dashboard').style.display='block';
+  switchMemberTab(currentMemberTab);
+  // start listening to signals for active members
+  listenSignalsForMember();
+}
+
+/* ===== PayPal rendering (client-side) - two separate buttons =====
+   - Monthly button -> $25
+   - Lifetime button -> $450
+   - Both mark subscription paid:true active:false (🟡) and create subscriptions doc keyed by uid
+   - application_context.brand_name ensures brand shows in checkout
+*/
+function renderMemberPaypal(){
+  if(!auth.currentUser) return;
+  const paypalContainerMonthly = document.getElementById('paypal-button-monthly');
+  const paypalContainerLifetime = document.getElementById('paypal-button-lifetime');
+
+  // clear previous (if any)
+  if(paypalContainerMonthly) paypalContainerMonthly.innerHTML = '';
+  if(paypalContainerLifetime) paypalContainerLifetime.innerHTML = '';
+
+  // monthly
+  paypal.Buttons({
+    createOrder: (data, actions) => actions.order.create({
+      purchase_units: [{ amount: { value: '25.00' } }],
+      application_context: { brand_name: "Scxforexsignal", user_action: "PAY_NOW" }
+    }),
+    onApprove: (data, actions) => actions.order.capture().then(async (details) => {
+      const uid = auth.currentUser.uid;
+      const email = auth.currentUser.email;
+      await db.collection('subscriptions').doc(uid).set({
+        email,
+        plan: 'Monthly',
+        paid: true,
+        active: false,
+        paymentReference: details.id || '',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      await db.collection('members').doc(uid).set({
+        paid: true,
+        active: false,
+        paidAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      // After payment member still sees payment page until admin activates
+      renderMemberPaypal();
+      showReviews();
+    }),
+    onError: (err) => {
+      console.error('PayPal monthly error', err);
+      alert('Payment error: ' + (err && err.message ? err.message : 'See console'));
+    }
+  }).render('#paypal-button-monthly');
+
+  // lifetime
+  paypal.Buttons({
+    createOrder: (data, actions) => actions.order.create({
+      purchase_units: [{ amount: { value: '450.00' } }],
+      application_context: { brand_name: "Scxforexsignal", user_action: "PAY_NOW" }
+    }),
+    onApprove: (data, actions) => actions.order.capture().then(async (details) => {
+      const uid = auth.currentUser.uid;
+      const email = auth.currentUser.email;
+      await db.collection('subscriptions').doc(uid).set({
+        email,
+        plan: 'Lifetime',
+        paid: true,
+        active: false,
+        paymentReference: details.id || '',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      await db.collection('members').doc(uid).set({
+        paid: true,
+        active: false,
+        paidAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      // After payment member still sees payment page until admin activates
+      renderMemberPaypal();
+      showReviews();
+    }),
+    onError: (err) => {
+      console.error('PayPal lifetime error', err);
+      alert('Payment error: ' + (err && err.message ? err.message : 'See console'));
+    }
+  }).render('#paypal-button-lifetime');
+}
+
+/* ===== Admin: Post & manage signals ===== */
+function postSignal(){
+  const sig = {
+    pair: document.getElementById('pair').value.trim(),
+    direction: document.getElementById('direction').value,
+    entry: document.getElementById('entry').value.trim(),
+    sl: document.getElementById('sl').value.trim(),
+    tp1: document.getElementById('tp1').value.trim(),
+    tp2: document.getElementById('tp2').value.trim(),
+    tp3: document.getElementById('tp3').value.trim(),
+    reason: document.getElementById('reason').value.trim(),
+    status: document.getElementById('status').value,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    outcome: ''
+  };
+
+  if(!sig.pair || !sig.entry || !sig.sl || !sig.tp1){
+    return alert('Please fill Pair, Entry, SL and TP1 at minimum.');
+  }
+
+  db.collection('signals').add(sig)
+    .then(()=>{ alert('Signal published'); clearPostForm(); listenSignalsAdmin(); })
+    .catch(e=>alert(e.message));
+}
+
+function updateStatus(docId, status){
+  db.collection('signals').doc(docId).update({ status })
+    .catch(e=>alert(e.message));
+}
+
+function deleteSignal(docId){
+  if(!confirm('Delete this signal?')) return;
+  db.collection('signals').doc(docId).delete().catch(e=>alert(e.message));
+}
+
+/* Render a signal card (for admin and member) with badges & posted date/time and outcome line */
+function renderSignalCard(s, docId, admin=false){
+  // timestamp -> friendly
+  let posted = '';
+  if(s.timestamp && s.timestamp.toDate) posted = s.timestamp.toDate().toLocaleString();
+  else if(s.timestamp && s.timestamp.seconds) posted = new Date(s.timestamp.seconds * 1000).toLocaleString();
+
+  const status = s.status || 'Pending';
+
+  // Badge mapping (top)
+  let badgeHtml = '';
+  if(status === 'Active'){
+    badgeHtml = `<span class="status-tag badge-yellow">Active</span>`;
+  } else if(status === 'SL'){
+    badgeHtml = `<span class="status-tag badge-red">SL Hit</span>`;
+  } else if(status === 'TP1' || status === 'TP2' || status === 'TP3') {
+    badgeHtml = `<span class="status-tag badge-green">TP Hit</span>`;
+  } else if(status === 'Expired'){
+    badgeHtml = `<span class="status-tag badge-gray">Expired</span>`;
+  } else if(status === 'Pending'){
+    badgeHtml = `<span class="status-tag badge-gray">Pending</span>`;
+  } else {
+    badgeHtml = `<span class="status-tag badge-gray">${status}</span>`;
+  }
+
+  // Outcome line (bottom) — explicit result word with color
+  let outcomeLine = '';
+  if(status === 'SL'){
+    outcomeLine = `<div style="margin-top:10px"><strong style="color:#fff;background:#dc3545;padding:6px 10px;border-radius:6px">Result: SL Hit</strong></div>`;
+  } else if(status === 'TP1' || status === 'TP2' || status === 'TP3'){
+    outcomeLine = `<div style="margin-top:10px"><strong style="color:#fff;background:#28a745;padding:6px 10px;border-radius:6px">Result: ${status} Hit</strong></div>`;
+  } else if(status === 'Expired'){
+    outcomeLine = `<div style="margin-top:10px"><strong style="color:#fff;background:#6f42c1;padding:6px 10px;border-radius:6px">Result: Expired</strong></div>`;
+  } else if(status === 'Pending'){
+    outcomeLine = `<div style="margin-top:10px"><strong style="color:#fff;background:#6c757d;padding:6px 10px;border-radius:6px">Result: Pending</strong></div>`;
+  } else if(status === 'Active'){
+    outcomeLine = `<div style="margin-top:10px"><strong style="color:#000;background:#ffecb3;padding:6px 10px;border-radius:6px">Status: Active</strong></div>`;
+  } else {
+    outcomeLine = `<div style="margin-top:10px"><strong style="color:#fff;background:#6c757d;padding:6px 10px;border-radius:6px">Result: ${status}</strong></div>`;
+  }
+
+  const html = `<div class="signal-card">
+    <div class="signal-header"><span>${s.pair || '-'} • ${s.direction || '-'}</span><span>${badgeHtml}</span></div>
+    <div>Entry: ${s.entry || '-'} | SL: ${s.sl || '-'} | TP1: ${s.tp1 || '-'} TP2: ${s.tp2 || '-'} TP3: ${s.tp3 || '-'}</div>
+    <div style="margin-top:8px">Reason: ${s.reason || ''}</div>
+    <div style="margin-top:8px"><small>Posted: ${posted}</small></div>
+    ${outcomeLine}
+    ${admin ? `<div class="admin-buttons" style="margin-top:8px">
+      <button onclick="updateStatus('${docId}','Pending')">Pending</button>
+      <button onclick="updateStatus('${docId}','Active')">Active</button>
+      <button onclick="updateStatus('${docId}','TP1')">TP1</button>
+      <button onclick="updateStatus('${docId}','TP2')">TP2</button>
+      <button onclick="updateStatus('${docId}','TP3')">TP3</button>
+      <button onclick="updateStatus('${docId}','SL')">SL</button>
+      <button onclick="updateStatus('${docId}','Expired')">Expired</button>
+      <button onclick="deleteSignal('${docId}')">❌ Delete</button>
+    </div>` : ''}
+  </div>`;
+  return html;
+}
+
+/* ===== Listeners for admin views ===== */
+function listenSignalsAdmin(){
+  db.collection('signals').orderBy('timestamp','desc').onSnapshot(snap=>{
+    const el = document.getElementById('signalsListAdmin');
+    el.innerHTML = '';
+    snap.forEach(doc => el.innerHTML += renderSignalCard(doc.data(), doc.id, true));
+    if(snap.empty) el.innerHTML = 'No signals yet.';
+  });
+}
+
+/* Active (admin) - show only Active signals */
+function listenActiveSignals(){
+  db.collection('signals').orderBy('timestamp','desc').onSnapshot(snap=>{
+    const el = document.getElementById('activeSignals');
+    el.innerHTML = '';
+    snap.forEach(doc=>{
+      const s = doc.data();
+      if(s.status === 'Active') el.innerHTML += renderSignalCard(s, doc.id, true);
+    });
+    if(el.innerHTML.trim()==='') el.innerHTML = 'No active signals.';
+  });
+}
+
+/* History (admin) - show non-Active signals */
+function listenCompletedSignals(){
+  db.collection('signals').orderBy('timestamp','desc').onSnapshot(snap=>{
+    const el = document.getElementById('completedSignals');
+    el.innerHTML = '';
+    snap.forEach(doc=>{
+      const s = doc.data();
+      if(s.status !== 'Active') el.innerHTML += renderSignalCard(s, doc.id, true);
+    });
+    if(el.innerHTML.trim()==='') el.innerHTML = 'No history records yet.';
+  });
+}
+
+/* ===== Members list for admin (with controls & icons) ===== */
+function listenMembersAdmin(){
+  db.collection('members').orderBy('joinedAt','desc').onSnapshot(snap=>{
+    const el = document.getElementById('membersList');
+    el.innerHTML = '';
+    snap.forEach(doc=>{
+      const u = doc.data();
+      const id = doc.id;
+      let icon = "🔴";
+      if(u.paid && !u.active) icon = "🟡";
+      if(u.active) icon = "🟢";
+      el.innerHTML += `<div class="signal-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>${u.email || '(no email)'}</strong><br><small>Joined: ${u.joinedAt && u.joinedAt.toDate ? u.joinedAt.toDate().toLocaleString() : '-'}</small></div>
+          <div style="text-align:right">${icon}</div>
+        </div>
+        <div style="margin-top:8px" class="admin-buttons">
+          <button class="small-btn btn-paid" onclick="setMemberPaid('${id}')">Mark Paid (🟡)</button>
+          <button class="small-btn btn-activate" onclick="activateMember('${id}')">Activate (🟢)</button>
+          <button class="small-btn btn-deactivate" onclick="deactivateMember('${id}')">Deactivate (🔴)</button>
+          <button class="small-btn" onclick="deleteMember('${id}')">Delete</button>
+        </div>
+      </div>`;
+    });
+    if(snap.empty) el.innerHTML = 'No members yet.';
+  });
+}
+
+function setMemberPaid(docId){
+  db.collection('members').doc(docId).set({ paid:true }, { merge:true })
+    .then(()=>alert('Member marked as Paid (🟡)'))
+    .catch(e=>alert(e.message));
+}
+function activateMember(docId){
+  db.collection('members').doc(docId).set({ active:true, paid:true }, { merge:true })
+    .then(()=>alert('Member activated (🟢)'))
+    .catch(e=>alert(e.message));
+}
+function deactivateMember(docId){
+  db.collection('members').doc(docId).set({ active:false }, { merge:true })
+    .then(()=>alert('Member deactivated (🔴)'))
+    .catch(e=>alert(e.message));
+}
+function deleteMember(docId){
+  if(!confirm('Delete member and their subscription?')) return;
+  db.collection('members').doc(docId).delete().then(()=>{
+    // also remove subscription doc if exists
+    db.collection('subscriptions').doc(docId).delete().catch(()=>{});
+    alert('Member deleted');
+  }).catch(e=>alert(e.message));
+}
+
+/* ===== Subscriptions list (admin) ===== */
+function listenSubscriptions(){
+  db.collection('subscriptions').orderBy('updatedAt','desc').onSnapshot(snap=>{
+    const el = document.getElementById('subscriptionsList');
+    el.innerHTML = '';
+    snap.forEach(doc=>{
+      const s = doc.data();
+      el.innerHTML += `<div class="signal-card">
+        <b>${s.email || '(unknown)'}</b><br>Plan: ${s.plan || '-'}<br>Status: ${s.active ? 'Active' : (s.paid ? 'Paid (pending admin)' : 'Not paid')}<br>PaymentRef: ${s.paymentReference || '-'}
+        <div style="margin-top:8px" class="admin-buttons">
+          <button onclick="setSubscriptionActive('${doc.id}', true)">Activate</button>
+          <button onclick="setSubscriptionActive('${doc.id}', false)">Deactivate</button>
+          <button onclick="deleteSubscription('${doc.id}')">Delete</button>
+        </div>
+      </div>`;
+    });
+    if(snap.empty) el.innerHTML = 'No subscriptions yet.';
+  });
+}
+
+async function setSubscriptionActive(docId, active){
+  try {
+    await db.collection('subscriptions').doc(docId).update({ active, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    // keep members collection in sync (subscriptions keyed by uid)
+    await db.collection('members').doc(docId).set({ active }, { merge:true });
+    alert(active ? 'Activated' : 'Deactivated');
+  } catch(e){ alert(e.message); }
+}
+async function deleteSubscription(docId){
+  if(!confirm('Delete subscription record?')) return;
+  try {
+    await db.collection('subscriptions').doc(docId).delete();
+    await db.collection('members').doc(docId).set({ active:false, paid:false }, { merge:true });
+    alert('Subscription deleted');
+  } catch(e){ alert(e.message); }
+}
+
+/* ===== Member view: listen signals depending on member state (paid + active) ===== */
+function listenSignalsForMember(){
+  // Only active members will call this.
+  db.collection('signals').orderBy('timestamp','desc').onSnapshot(snap=>{
+    const el = document.getElementById('memberSignalsList');
+    el.innerHTML = '';
+    snap.forEach(doc=>{
+      const s = doc.data();
+      const paid = currentUserMemberDoc && currentUserMemberDoc.paid;
+      const active = currentUserMemberDoc && currentUserMemberDoc.active;
+
+      if(!paid || !active) return; // defensive
+
+      if(currentMemberTab === 'active'){
+        if(s.status === 'Active') el.innerHTML += renderSignalCard(s, doc.id, false);
+      } else {
+        // history: show everything except Active
+        if(s.status !== 'Active') el.innerHTML += renderSignalCard(s, doc.id, false);
+      }
+    });
+
+    if(el.innerHTML.trim() === '') {
+      el.innerHTML = '<div class="signal-card">No signals in this section yet.</div>';
+    }
+  });
+}
+
+/* ===== UI Tab switches ===== */
+function switchAdminTab(tab){
+  adminCurrentTab = tab;
+  ['post','members','active','history','subscriptions'].forEach(t=>{
+    const el = document.getElementById('admin-'+t);
+    if(el) el.style.display = (t===tab)?'block':'none';
+    const nav = document.getElementById('nav-'+t);
+    if(nav) nav.classList.toggle('active', t===tab);
+  });
+
+  if(tab === 'post'){ listenSignalsAdmin(); }
+  if(tab === 'members'){ listenMembersAdmin(); }
+  if(tab === 'active'){ listenActiveSignals(); }
+  if(tab === 'history'){ listenCompletedSignals(); }
+  if(tab === 'subscriptions'){ listenSubscriptions(); }
+}
+
+function switchMemberTab(tab){
+  currentMemberTab = tab;
+  document.getElementById('member-tab-active').classList.toggle('active', tab==='active');
+  document.getElementById('member-tab-history').classList.toggle('active', tab==='history');
+  // refresh view
+  listenSignalsForMember();
+}
+
+/* ===== WhatsApp open (no number shown) ===== */
+function openWhatsApp(){
+  const text = encodeURIComponent("Hello SCX support, I need help with my account.");
+  const link = `https://wa.me/${SUPPORT_WHATSAPP.replace(/\+/g,'') }?text=${text}`;
+  window.open(link, '_blank');
+}
+
+/* ===== Reviews carousel rendering & rotation ===== */
+let reviewIndex = 0;
+let reviewInterval = null;
+function showReviews(){
+  const container = document.getElementById('reviewsContainer');
+  const inner = document.getElementById('reviewInner');
+  const wa = document.getElementById('whatsappBottom');
+  if(!auth.currentUser) { container.style.display='none'; wa.style.display='none'; return; }
+  container.style.display='block';
+  wa.style.display='flex';
+
+  renderReview(reviewIndex);
+
+  if(reviewInterval) clearInterval(reviewInterval);
+  reviewInterval = setInterval(()=> {
+    reviewIndex = (reviewIndex + 1) % reviews.length;
+    renderReview(reviewIndex);
+  }, 5000);
+}
+
+function renderReview(i){
+  const r = reviews[i];
+  const inner = document.getElementById('reviewInner');
+  // build stars
+  let stars = '';
+  for(let s=0;s<r.stars;s++) stars += '★';
+  inner.innerHTML = '';
+  // create item
+  const item = document.createElement('div');
+  item.className = 'review-item';
+  item.innerHTML = `<div class="avatar">${r.avatarText}</div>
+    <div class="review-text">
+      <div class="review-name">${r.name} <span class="review-stars">${stars}</span></div>
+      <div class="review-msg">${r.msg}</div>
+    </div>`;
+  inner.appendChild(item);
+}
+
+/* ===== Initial UI state ===== */
+document.getElementById('login-page').style.display = 'block';
+document.getElementById('signup-page').style.display = 'none';
+document.getElementById('member-dashboard').style.display = 'none';
+document.getElementById('admin-dashboard').style.display = 'none';
+document.getElementById('payment-page').style.display = 'none';
+
+</script>
+</body>
+</html>
