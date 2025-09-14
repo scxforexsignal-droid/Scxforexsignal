@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>SCX Forex Signals — Single File (Updated)</title>
+<title>SCX Forex Signals — Single File (Full)</title>
 
 <!-- Firebase (compat) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -11,7 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
-<!-- PayPal SDK using your Client ID (live) -->
+<!-- PayPal SDK (your client id) -->
 <script src="https://www.paypal.com/sdk/js?client-id=AUcKE0iL2d9YmalH5UrGOm_BxCk3OAD2xZG2kUDbjxzwZvwME8hng5mwc0j9k4vaNamFKq1oPFKrRxju&currency=USD"></script>
 
 <style>
@@ -50,7 +50,7 @@
   .btn-activate{background:#28a745;color:#fff}
   .btn-deactivate{background:#dc3545;color:#fff}
   .btn-paid{background:orange;color:#fff}
-
+  .error { color: #c62828; margin-top:6px; }
   /* Reviews carousel */
   .reviews-box {margin-top:16px;padding:12px;border-radius:8px;border:1px solid #eee;background:#fafafa;overflow:hidden;position:relative}
   .review-inner {display:flex;gap:12px;align-items:center;transition:transform .6s ease}
@@ -82,7 +82,7 @@
       <button onclick="showSignup()" class="secondary">Sign up</button>
     </div>
     <p style="margin-top:8px"><a href="#" onclick="resetPassword()">Forgot password?</a></p>
-    <p id="loginError" style="color:red"></p>
+    <p id="loginError" class="error"></p>
   </div>
 
   <!-- SIGNUP -->
@@ -94,14 +94,13 @@
       <button onclick="signup()">Create account</button>
       <button onclick="showLogin()" class="secondary">Back to Login</button>
     </div>
-    <p id="signupError" style="color:red"></p>
+    <p id="signupError" class="error"></p>
   </div>
 
   <!-- PAYMENT PAGE (for 🔴 and 🟡 users) -->
   <div id="payment-page" style="display:none">
     <h2>Subscription</h2>
     <div class="card">
-      <!-- Two subscription options: monthly & lifetime -->
       <div class="subscription-option" style="margin-bottom:12px">
         <h3 style="margin:6px 0">Monthly — $25.00</h3>
         <div id="paypal-button-monthly"></div>
@@ -119,12 +118,10 @@
         </div>
       </div>
 
-      <!-- Reviews carousel (only for logged-in users) -->
       <div id="reviewsContainer" class="reviews-box" style="display:none">
         <div id="reviewInner" class="review-inner"></div>
       </div>
 
-      <!-- WhatsApp at bottom of payment section (no phone shown) -->
       <div class="whatsapp-bottom" id="whatsappBottom" style="display:none">
         <button title="Contact support via WhatsApp" class="whatsapp-btn" onclick="openWhatsApp()">
           <svg class="whatsapp-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -178,7 +175,6 @@
         <input id="tp2" placeholder="Take profit 2">
         <input id="tp3" placeholder="Take profit 3">
       </div>
-      <!-- extended status options -->
       <select id="status">
         <option value="Pending">Pending</option>
         <option value="Active">Active</option>
@@ -227,25 +223,24 @@
 
 <script>
 /* ===========================
-   CONFIG (your provided values)
+   CONFIG (from your project)
    =========================== */
 const firebaseConfig = {
   apiKey: "AIzaSyAOtvOtwIuI75c3ys-D1xu09dfk5DhkQnQ",
   authDomain: "scxforexsignal-3769b.firebaseapp.com",
   projectId: "scxforexsignal-3769b",
-  storageBucket: "scxforexsignal-3769b.appspot.com",
+  storageBucket: "scxforexsignal-3769b.firebasestorage.app",
   messagingSenderId: "917213061105",
   appId: "1:917213061105:android:bc95864449b7385dde6e50"
 };
 
-// FCM key included (not used in this file unless you enable messaging)
+// FCM VAPID (stored but optional)
 const FCM_VAPID_KEY = "BFgr5idOtc2JrMLSbtkC-1nq6szMj00a6TUuttA1yv5Lt528Itajfo6fsMcOQ-1wuG7lLwH19QuBK0PnRnMWNSA";
 
-// Hardcoded admin credentials (development convenience)
-const ADMIN_EMAIL = "wekesaayub66@gmail.com";
-const ADMIN_PASSWORD = "@Bakary2003";
+// Admin email only (no password in code)
+const ADMIN_EMAIL = "scxforexsignal@gmail.com";
 
-// WhatsApp number (not displayed on screen)
+// WhatsApp support (kept private)
 const SUPPORT_WHATSAPP = "+254718156857";
 
 firebase.initializeApp(firebaseConfig);
@@ -315,20 +310,6 @@ async function login(){
   const remember = document.getElementById('rememberMe').checked;
   document.getElementById('loginError').innerText = '';
 
-  // Admin quick override (hardcoded)
-  if(email === ADMIN_EMAIL && pass === ADMIN_PASSWORD){
-    document.getElementById('login-page').style.display='none';
-    document.getElementById('admin-dashboard').style.display='block';
-    ['nav-post','nav-members','nav-active','nav-history','nav-subscriptions'].forEach(id=>document.getElementById(id).classList.remove('hidden'));
-    switchAdminTab('post');
-    listenSignalsAdmin();
-    listenActiveSignals();
-    listenCompletedSignals();
-    listenMembersAdmin();
-    listenSubscriptions();
-    return;
-  }
-
   try {
     if(remember){
       await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -336,24 +317,41 @@ async function login(){
       await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
     }
 
+    // Sign in with Firebase Auth
     await auth.signInWithEmailAndPassword(email, pass);
-    const uid = auth.currentUser.uid;
+    const user = auth.currentUser;
+    if(!user) throw new Error('No user after sign-in.');
 
-    // load member doc
+    // Admin check (email only)
+    if(user.email === ADMIN_EMAIL){
+      // show admin UI
+      document.getElementById('login-page').style.display='none';
+      document.getElementById('admin-dashboard').style.display='block';
+      ['nav-post','nav-members','nav-active','nav-history','nav-subscriptions'].forEach(id=>document.getElementById(id).classList.remove('hidden'));
+      switchAdminTab('post');
+      listenSignalsAdmin();
+      listenActiveSignals();
+      listenCompletedSignals();
+      listenMembersAdmin();
+      listenSubscriptions();
+      return;
+    }
+
+    // Member flow
+    const uid = user.uid;
     const memberSnap = await db.collection('members').doc(uid).get();
     if(!memberSnap.exists){
       await db.collection('members').doc(uid).set({
-        email,
+        email: user.email,
         joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
         active: false,
         paid: false
       }, { merge: true });
-      currentUserMemberDoc = { email, active:false, paid:false };
+      currentUserMemberDoc = { email: user.email, active:false, paid:false };
     } else {
       currentUserMemberDoc = memberSnap.data();
     }
 
-    // show UI based on status
     await decideMemberUI();
 
   } catch (err){
@@ -401,12 +399,7 @@ async function decideMemberUI(){
   listenSignalsForMember();
 }
 
-/* ===== PayPal rendering (client-side) - two separate buttons =====
-   - Monthly button -> $25
-   - Lifetime button -> $450
-   - Both mark subscription paid:true active:false (🟡) and create subscriptions doc keyed by uid
-   - application_context.brand_name ensures brand shows in checkout
-*/
+/* ===== PayPal rendering (client-side) - two separate buttons ===== */
 function renderMemberPaypal(){
   if(!auth.currentUser) return;
   const paypalContainerMonthly = document.getElementById('paypal-button-monthly');
@@ -799,13 +792,52 @@ function renderReview(i){
   inner.appendChild(item);
 }
 
-/* ===== Initial UI state ===== */
+/* ===== Initial UI state & onAuth listener ===== */
 document.getElementById('login-page').style.display = 'block';
 document.getElementById('signup-page').style.display = 'none';
 document.getElementById('member-dashboard').style.display = 'none';
 document.getElementById('admin-dashboard').style.display = 'none';
 document.getElementById('payment-page').style.display = 'none';
 
+auth.onAuthStateChanged(async (user) => {
+  // If user already signed in (page reload), show appropriate UI
+  if(!user){
+    // not signed in
+    document.getElementById('login-page').style.display = 'block';
+    return;
+  }
+  try {
+    if(user.email === ADMIN_EMAIL){
+      document.getElementById('login-page').style.display='none';
+      document.getElementById('admin-dashboard').style.display='block';
+      ['nav-post','nav-members','nav-active','nav-history','nav-subscriptions'].forEach(id=>document.getElementById(id).classList.remove('hidden'));
+      switchAdminTab('post');
+      listenSignalsAdmin();
+      listenActiveSignals();
+      listenCompletedSignals();
+      listenMembersAdmin();
+      listenSubscriptions();
+      return;
+    }
+    // member flow
+    const uid = user.uid;
+    const memberSnap = await db.collection('members').doc(uid).get();
+    if(!memberSnap.exists){
+      // new member -> payment page
+      document.getElementById('login-page').style.display='none';
+      document.getElementById('payment-page').style.display='block';
+      renderMemberPaypal();
+      showReviews();
+      return;
+    }
+    currentUserMemberDoc = memberSnap.data();
+    await decideMemberUI();
+  } catch(e){
+    console.error('onAuth error', e);
+    alert('Error restoring session: '+ (e.message || e));
+    document.getElementById('login-page').style.display='block';
+  }
+});
 </script>
 </body>
 </html>
