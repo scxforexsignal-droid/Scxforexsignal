@@ -11,9 +11,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
-<!-- PayPal SDK (your client id) -->
-<script src="https://www.paypal.com/sdk/js?client-id=ATMQwNA3GtpexrVzaYELXWbQ0ctaQMHiCb_f65fNmBowxO6w8NxZvs2SSLtHkUR-C7lkovhz9awMrkp4&currency=USD"></script>
-
 <style>
   body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f7f7f7;color:#222}
   .container{max-width:980px;margin:28px auto;padding:18px;background:#fff;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,0.08)}
@@ -64,6 +61,9 @@
   .whatsapp-bottom {display:flex;justify-content:center;margin-top:12px}
   .whatsapp-btn {width:44px;height:44px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#25D366;border:none;cursor:pointer}
   .whatsapp-svg {width:20px;height:20px;display:block;fill:#fff}
+  /* Payd button style */
+  .payd-btn {background:#1a73e8;color:#fff;padding:12px;border:none;border-radius:6px;width:100%;cursor:pointer;font-size:16px;transition:background 0.3s;}
+  .payd-btn:hover {background:#0d47a1;}
 </style>
 </head>
 <body>
@@ -101,14 +101,24 @@
   <div id="payment-page" style="display:none">
     <h2>Subscription</h2>
     <div class="card">
-      <div class="subscription-option" style="margin-bottom:12px">
-        <h3 style="margin:6px 0">Monthly — $25.00</h3>
-        <div id="paypal-button-monthly"></div>
+      <div class="subscription-option" style="margin-bottom:20px">
+        <h3 style="margin:6px 0">Monthly Plan — $25.00</h3>
+        <a href="https://web.mypayd.app/link/scx-subscription-plan" target="_blank" style="text-decoration:none;">
+          <button class="payd-btn">
+            Pay Monthly with Payd
+          </button>
+        </a>
+        <p class="small-muted" style="margin-top:8px;text-align:center;">Click to complete payment via Payd</p>
       </div>
 
-      <div class="subscription-option" style="margin-bottom:12px">
-        <h3 style="margin:6px 0">Lifetime — $450.00</h3>
-        <div id="paypal-button-lifetime"></div>
+      <div class="subscription-option" style="margin-bottom:20px">
+        <h3 style="margin:6px 0">Lifetime Plan — $450.00</h3>
+        <a href="https://web.mypayd.app/link/scx-subscription-membership-plan" target="_blank" style="text-decoration:none;">
+          <button class="payd-btn">
+            Pay Lifetime with Payd
+          </button>
+        </a>
+        <p class="small-muted" style="margin-top:8px;text-align:center;">Click to complete payment via Payd</p>
       </div>
 
       <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
@@ -387,7 +397,6 @@ async function decideMemberUI(){
   // If not active -> show minimal Payment Page only (both for unpaid and paid-but-waiting)
   if(!active){
     document.getElementById('payment-page').style.display='block';
-    renderMemberPaypal(); // ensure PayPal renders (both buttons)
     showReviews(); // reviews visible at bottom of payment page
     return;
   }
@@ -397,81 +406,6 @@ async function decideMemberUI(){
   switchMemberTab(currentMemberTab);
   // start listening to signals for active members
   listenSignalsForMember();
-}
-
-/* ===== PayPal rendering (client-side) - two separate buttons ===== */
-function renderMemberPaypal(){
-  if(!auth.currentUser) return;
-  const paypalContainerMonthly = document.getElementById('paypal-button-monthly');
-  const paypalContainerLifetime = document.getElementById('paypal-button-lifetime');
-
-  // clear previous (if any)
-  if(paypalContainerMonthly) paypalContainerMonthly.innerHTML = '';
-  if(paypalContainerLifetime) paypalContainerLifetime.innerHTML = '';
-
-  // monthly
-  paypal.Buttons({
-    createOrder: (data, actions) => actions.order.create({
-      purchase_units: [{ amount: { value: '25.00' } }],
-      application_context: { brand_name: "Scxforexsignal", user_action: "PAY_NOW" }
-    }),
-    onApprove: (data, actions) => actions.order.capture().then(async (details) => {
-      const uid = auth.currentUser.uid;
-      const email = auth.currentUser.email;
-      await db.collection('subscriptions').doc(uid).set({
-        email,
-        plan: 'Monthly',
-        paid: true,
-        active: false,
-        paymentReference: details.id || '',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      await db.collection('members').doc(uid).set({
-        paid: true,
-        active: false,
-        paidAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      // After payment member still sees payment page until admin activates
-      renderMemberPaypal();
-      showReviews();
-    }),
-    onError: (err) => {
-      console.error('PayPal monthly error', err);
-      alert('Payment error: ' + (err && err.message ? err.message : 'See console'));
-    }
-  }).render('#paypal-button-monthly');
-
-  // lifetime
-  paypal.Buttons({
-    createOrder: (data, actions) => actions.order.create({
-      purchase_units: [{ amount: { value: '450.00' } }],
-      application_context: { brand_name: "Scxforexsignal", user_action: "PAY_NOW" }
-    }),
-    onApprove: (data, actions) => actions.order.capture().then(async (details) => {
-      const uid = auth.currentUser.uid;
-      const email = auth.currentUser.email;
-      await db.collection('subscriptions').doc(uid).set({
-        email,
-        plan: 'Lifetime',
-        paid: true,
-        active: false,
-        paymentReference: details.id || '',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      await db.collection('members').doc(uid).set({
-        paid: true,
-        active: false,
-        paidAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      // After payment member still sees payment page until admin activates
-      renderMemberPaypal();
-      showReviews();
-    }),
-    onError: (err) => {
-      console.error('PayPal lifetime error', err);
-      alert('Payment error: ' + (err && err.message ? err.message : 'See console'));
-    }
-  }).render('#paypal-button-lifetime');
 }
 
 /* ===== Admin: Post & manage signals ===== */
@@ -826,7 +760,6 @@ auth.onAuthStateChanged(async (user) => {
       // new member -> payment page
       document.getElementById('login-page').style.display='none';
       document.getElementById('payment-page').style.display='block';
-      renderMemberPaypal();
       showReviews();
       return;
     }
